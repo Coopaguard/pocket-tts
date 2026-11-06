@@ -114,7 +114,9 @@ fn client() -> Result<hf_hub::HFClientSync> {
     if let Some(token) = hf_token() {
         builder = builder.token(token);
     }
-    let inner = builder.build().context("cannot build the Hugging Face client")?;
+    let inner = builder
+        .build()
+        .context("cannot build the Hugging Face client")?;
     Ok(hf_hub::HFClientSync::from_inner(inner)?)
 }
 

@@ -1,12 +1,29 @@
 [package]
-name = "pocket-tts"
-# Kept in step with the Python package in ../pyproject.toml.
-version = "3.3.0"
+# `pocket-tts` on crates.io is an unrelated third-party reimplementation (0.6.2, a Candle port),
+# and crates.io normalises `-` and `_`, so `pocket_tts` resolves to that same crate rather than
+# being a free alternative. It has no namespaces either — there is no `owner/name` form — so the
+# package needs a distinct flat name. The library inside stays `pocket_tts` (see `[lib]`), which
+# is what callers write; only the package name moved. A dependent that wants the old key writes
+# `pocket-tts = { package = "kyutai-pocket-tts", … }`.
+name = "kyutai-pocket-tts"
+# Deliberately *not* the Python package's number. On crates.io a version is a promise about this
+# crate's Rust API, which cargo resolves dependencies against; tying it to another artifact means
+# either bumping major for an API that did not change, or being unable to express one that did.
+# Starting at 0.1.0 is also honest: points of this surface are still open (the `anyhow` boundary,
+# `xn` in the API, `available_languages` listing release snapshots), and 0.x is where cargo expects
+# breaking changes to land on a minor. Which Python release the embedded configs came from is a
+# separate, checked fact — `PYTHON_PACKAGE_VERSION` in `src/lib.rs`.
+version = "0.1.0"
 edition = "2024"
 description = "Kyutai's pocket-sized text-to-speech, as a standalone binary with the CLI of the Python package"
 license = "MIT"
 repository = "https://github.com/kyutai-labs/pocket-tts"
-publish = false
+readme = "README.md"
+keywords = ["tts", "text-to-speech", "speech", "audio", "cpu"]
+categories = ["multimedia::audio", "science"]
+# `assets/` holds the configs and the web page the build script embeds; without it the packaged
+# crate does not build. Everything else cargo would pick up — `target/`, test fixtures — stays out.
+include = ["src/**/*", "examples/**/*", "build.rs", "assets/**/*", "README.md", "USAGE.md", "LICENSE"]
 
 [lib]
 name = "pocket_tts"
@@ -46,11 +63,12 @@ sentencepiece = ["dep:sentencepiece"]
 accelerate = ["ptts/accelerate"]
 
 [dependencies]
-# The model itself: https://github.com/gradium-ai/xn-ptts, through a fork that adds what pocket-tts
-# models need on top of it (https://github.com/gabrieldemarmiesse/xn-ptts, branch
-# pocket-tts-small-models), pinned to a commit since its API is still moving between release
-# candidates.
-ptts = { git = "https://github.com/gabrieldemarmiesse/xn-ptts", rev = "7efa26973f81bba42cf2ace8da2c1eb9b605d54d", default-features = false, features = ["hf", "audio"] }
+# The model itself: https://github.com/gradium-ai/xn-ptts, from its crates.io release rather than
+# the fork this crate used to pin. Four of the fork's five model features landed upstream, and the
+# fifth needed nothing: xn-ptts infers a low-rank text table from the weight shapes, so the rank
+# travels as `lut_dim` and the projection is renamed on the way in. See `Config::to_ptts` in
+# `src/config.rs` and `remap_key` in `src/weights.rs` — all 27 configs are supported.
+ptts = { version = "0.5", default-features = false, features = ["hf", "audio"] }
 # Must be the version ptts uses, its tensors cross the boundary.
 xn = "0.2.11"
 
